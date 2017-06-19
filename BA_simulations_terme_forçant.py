@@ -44,6 +44,57 @@ from BA_fonctions import *
 
 ## fonctions
 
+def genere_donnees():
+    """ crée aléatoirement des données 
+    
+    SORTIES
+    C_reel [array (K, 3)] : coordonnées des caméras
+    X_reel [array (N, 3)] : coordonnées des points
+    theta_reel [array (K, 3)] : angles de rotation des caméras initiaux
+    
+    """
+    
+    C_reel = rand(K, 3)
+    C_reel[:, 0] = (C_reel[:, 0] - 0.5) *2*X0
+    C_reel[:, 1] *= (C_reel[:, 1] - 0.5) *2*Y0
+    C_reel[:, 2] = C_reel[:, 2] * (Z2-Z1) + Z1
+    
+    theta_reel = np.zeros((K, 3))
+    for i in range(K): # on fait pointer les caméras vers le point (0, 0, 0)
+        X, Y, Z = -C_reel[i] / sl.norm(C_reel[i])
+        beta = np.arcsin(-X)
+        alpha = np.arcsin(Y/np.cos(beta))
+        if np.cos(alpha)*np.cos(beta)*Z < 0: alpha = np.pi - alpha
+        theta_reel[i, 0] = alpha
+        theta_reel[i, 1] = beta
+    
+    X_reel = (rand(N, 3) - 0.5)
+    X_reel[:, 0] *= X0
+    X_reel[:, 1] *= Y0
+    X_reel[:, 2] *= Z0
+    
+    return C_reel, X_reel, theta_reel
+
+def scene_3D():
+    """ crée une figure 3D correspondant aux données """
+    
+    Z_cam = []
+    for theta in theta_reel:
+        Z_cam.append(np.linalg.inv(matrice_R(theta)).dot(np.array([0, 0, 1])))
+    
+    plt.figure().gca(projection = "3d")
+    plt.xlabel("X"), plt.ylabel("Y")
+    plt.plot([0], [0], [0], color="k", marker="+", markersize=10)
+    plt.plot(X_reel[:, 0], X_reel[:, 1], X_reel[:, 2], marker="+", markersize=3, color="b", label="points", linestyle="None")
+    plt.plot(C_reel[:, 0], C_reel[:, 1], C_reel[:, 2], marker="+", markersize=10, color="r", label="cameras", linestyle="None")
+    plt.legend(loc="best")
+    plt.xlim(-X0, X0), plt.ylim(-Y0, Y0)
+    
+    t = 200000
+    for C, Z in zip(C_reel, Z_cam):
+        ZZ = C + t*Z
+        plt.plot([C[0], ZZ[0]], [C[1], ZZ[1]], [C[2], ZZ[2]], color="k")    # trace les axes Z_cam
+
 def reestimation_globale_forcant(x_exact=False, theta_exact=False, affichage=False):
     """ réalise une simulation globale (création des données + réestimation de tous les paramètres)
     
